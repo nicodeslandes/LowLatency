@@ -35,8 +35,10 @@ namespace Server.Cs.SingleThreaded
 
             Console.WriteLine($"Starting server on port {port}");
             var listener = new TcpListener(host, port);
-            _ = AcceptClientConnections(listener);
             listener.Start();
+            _ = AcceptClientConnections(listener);
+            Console.WriteLine("Server started");
+            Console.ReadLine();
             return 0;
         }
 
@@ -62,13 +64,28 @@ namespace Server.Cs.SingleThreaded
                     int read = 0;
                     do
                     {
-                        read += await stream.ReadAsync(buffer.AsMemory(read, 12 - read));
+                        int r = await stream.ReadAsync(buffer.AsMemory(read, 12 - read));
+                        if (r <= 0)
+                        {
+                            Console.WriteLine("Connection to {0} closed", client.Client.RemoteEndPoint);
+                            client.Close();
+                            return;
+                        }
+                        else
+                        {
+                            read += r;
+                        }
                     }
                     while (read < 12);
 
                     WriteResponseToBuffer(buffer);
                     await stream.WriteAsync(buffer.AsMemory(0, 8));
                 }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("IO Exception caught: {0}; closing client connection", ex.Message);
+                client.Close();
             }
             finally
             {
