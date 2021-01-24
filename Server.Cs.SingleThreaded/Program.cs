@@ -1,7 +1,7 @@
-﻿using System;
+﻿using Common;
+using System;
 using System.Buffers;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -11,6 +11,8 @@ namespace Server.Cs.SingleThreaded
 {
     class Program
     {
+        static StatisticsLogger _Stats = new StatisticsLogger();
+
         static async Task<int> Main(string[] args)
         {
             int port = 8000;
@@ -34,6 +36,7 @@ namespace Server.Cs.SingleThreaded
             }
 
             Console.WriteLine($"Starting server on port {port}");
+            _Stats.Start();
             var listener = new TcpListener(host, port);
             listener.Start();
             _ = AcceptClientConnections(listener);
@@ -78,8 +81,10 @@ namespace Server.Cs.SingleThreaded
                     }
                     while (read < 12);
 
+                    _Stats.NewMessageReceived(12);
                     WriteResponseToBuffer(buffer);
                     await stream.WriteAsync(buffer.AsMemory(0, 8));
+                    _Stats.NewMessageSent(8);
                 }
             }
             catch (Exception ex)

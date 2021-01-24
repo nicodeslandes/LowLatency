@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Common;
+using System;
 using System.Buffers;
 using System.Diagnostics;
 using System.Net.Sockets;
@@ -10,6 +11,7 @@ namespace Client.Cs.SingleThreaded
     class Program
     {
         static byte[] data = new byte[65336];
+        static StatisticsLogger _Stats = new StatisticsLogger();
 
         static int Main(string[] args)
         {
@@ -33,8 +35,9 @@ namespace Client.Cs.SingleThreaded
             }
 
             InitialiseData();
-            Thread.Sleep(2000);
+            Thread.Sleep(1000);
             Console.WriteLine("Connecting to server {0}:{1}", host, port);
+            _Stats.Start();
             var client = new TcpClient(host, port);
             HandleConnection(client).Wait();
             return 0;
@@ -64,7 +67,8 @@ namespace Client.Cs.SingleThreaded
                     dataOffset = (dataOffset + 8) % data.Length;
                     Log("Send request {0}: {1} + {2}", id,
                         BitConverter.ToInt32(buffer.AsSpan()[4..]), BitConverter.ToInt32(buffer.AsSpan()[8..]));
-                    await stream.WriteAsync(buffer);
+                    await stream.WriteAsync(buffer.AsMemory(0, 12));
+                    _Stats.NewMessageSent(12);
 
                     int read = 0;
                     do
@@ -82,6 +86,7 @@ namespace Client.Cs.SingleThreaded
                         }
                     } while (read < 8);
 
+                    _Stats.NewMessageReceived(8);
                     Log("Response: id: {0}, value: {1}",
                         BitConverter.ToInt32(buffer.AsSpan()[0..]), BitConverter.ToInt32(buffer.AsSpan()[4..]));
                 }
