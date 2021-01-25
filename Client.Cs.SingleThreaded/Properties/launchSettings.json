@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Client.Cs.SingleThreaded": {
+      "commandName": "Project",
+      "commandLineArgs": "-host ryzen7"
+    }
+  }
+}

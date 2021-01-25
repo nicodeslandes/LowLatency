@@ -56,6 +56,8 @@ namespace Client.Cs.SingleThreaded
         {
             var stream = client.GetStream();
             var buffer = ArrayPool<byte>.Shared.Rent(12);
+            var latencySw = new Stopwatch();
+
             try
             {
                 int id = 1;
@@ -69,6 +71,7 @@ namespace Client.Cs.SingleThreaded
                         BitConverter.ToInt32(buffer.AsSpan()[4..]), BitConverter.ToInt32(buffer.AsSpan()[8..]));
                     await stream.WriteAsync(buffer.AsMemory(0, 12));
                     _Stats.NewMessageSent(12);
+                    latencySw.Restart();
 
                     int read = 0;
                     do
@@ -86,7 +89,7 @@ namespace Client.Cs.SingleThreaded
                         }
                     } while (read < 8);
 
-                    _Stats.NewMessageReceived(8);
+                    _Stats.NewMessageReceived(8, latencySw.Elapsed);
                     Log("Response: id: {0}, value: {1}",
                         BitConverter.ToInt32(buffer.AsSpan()[0..]), BitConverter.ToInt32(buffer.AsSpan()[4..]));
                 }
